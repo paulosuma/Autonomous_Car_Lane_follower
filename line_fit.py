@@ -20,10 +20,8 @@ def line_fit(binary_warped):
 	# Find the peak of the left and right halves of the histogram
 	# These will be the starting point for the left and right lines
 	midpoint = int(histogram.shape[0]/2)
-	# leftx_base = np.argmax(histogram[100:midpoint]) + 100
-	# rightx_base = np.argmax(histogram[midpoint:-100]) + midpoint
 	leftx_base = np.argmax(histogram[100:midpoint]) + 100
-	rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+	rightx_base = np.argmax(histogram[midpoint:-100]) + midpoint
 
 	# Choose the number of sliding windows
 	nwindows = 9
@@ -78,6 +76,13 @@ def line_fit(binary_warped):
 		y1, y2 = int(binary_warped.shape[0]-window_height*(window+1)), int(binary_warped.shape[0]-window_height*(window))
 		left_rectange = binary_warped[y1:y2, x1:x2]
 		nonzeroleft = left_rectange.nonzero()
+		if len(nonzeroleft[0]) == 0: #empty
+			nonzeroleft = list(nonzeroleft) 
+			nonzeroleft[0] = np.array([int(window_height/2)+(int(binary_warped.shape[0]-window_height*(window+1)))])
+			nonzeroleft[1] = np.array([int(margin/2)+(int(leftx_current-(margin/2)))])
+			nonzeroleft = tuple(nonzeroleft)
+		true_nonzerolefty = nonzeroleft[0]+(int(binary_warped.shape[0]-window_height*(window+1)))
+		# true_nonzeroleftx = nonzeroleft[1]+(int(leftx_current-(margin/2)))
 
 
 		#right
@@ -85,14 +90,21 @@ def line_fit(binary_warped):
 		y1r, y2r = int(binary_warped.shape[0]-window_height*(window+1)), int(binary_warped.shape[0]-window_height*(window))
 		right_rectange = binary_warped[y1r:y2r, x1r:x2r]
 		nonzeroright = right_rectange.nonzero()
+		if len(nonzeroright[0]) == 0: #empty
+			nonzeroright = list(nonzeroright) 
+			nonzeroright[0] = np.array([int(window_height/2)+(int(binary_warped.shape[0]-window_height*(window+1)))])
+			nonzeroright[1] = np.array([int(margin/2)+(int(rightx_current-(margin/2)))])
+			nonzeroright = tuple(nonzeroright)
+			
+		true_nonzerorighty = nonzeroright[0]+(int(binary_warped.shape[0]-window_height*(window+1)))
+		# true_nonzerorightx = nonzeroright[1]+(int(rightx_current-(margin/2)))
 
 		####
 		# Append these indices to the lists
 		## TODO
-		leftcentroid = [leftx_current, binary_warped.shape[0]-window_height*(window)]
-		rightcentroid = [rightx_current, binary_warped.shape[0]-window_height*(window)]
-		left_lane_inds.append(leftcentroid)
-		right_lane_inds.append(rightcentroid)
+
+		left_lane_inds.append(true_nonzerolefty)
+		right_lane_inds.append(true_nonzerorighty)
 
 		####
 		# If you found > minpix pixels, recenter next window on their mean position
@@ -112,13 +124,14 @@ def line_fit(binary_warped):
 			rightx_current = rightx_current - (minpix-mean_xr)
 
 	# Concatenate the arrays of indices
-
+	left_lane_inds = np.concatenate(left_lane_inds)
+	right_lane_inds = np.concatenate(right_lane_inds)
 
 	# Extract left and right line pixel positions
-	leftx = left_lane_inds[:][0]
-	lefty = left_lane_inds[:][1]
-	rightx = right_lane_inds[:][0]
-	righty = right_lane_inds[:][1]
+	leftx = nonzerox[left_lane_inds]
+	lefty = nonzeroy[left_lane_inds]
+	rightx = nonzerox[right_lane_inds]
+	righty = nonzeroy[right_lane_inds]
 
 	# Fit a second order polynomial to each using np.polyfit()
 	# If there isn't a good fit, meaning any of leftx, lefty, rightx, and righty are empty,
@@ -126,8 +139,11 @@ def line_fit(binary_warped):
 	# Thus, it is unable to detect edges.
 	try:
 	## TODO
-		left_fit = np.polyfit(leftx, lefty, 2)
-		right_fit = np.polyfit(rightx, righty, 2)
+		left_coeff = np.polyfit(lefty, leftx, 2)
+		right_coeff = np.polyfit(righty, rightx, 2)
+		y_variable = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
+		left_fit = left_coeff[0] * y_variable ** 2 + left_coeff[1] * y_variable + left_coeff[2]
+		right_fit = right_coeff[0] * y_variable ** 2 + right_coeff[1] * y_variable + right_coeff[2]
 
 	####
 	except TypeError:

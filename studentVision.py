@@ -21,9 +21,9 @@ class lanenet_detector():
         self.bridge = CvBridge()
         # NOTE
         # Uncomment this line for lane detection of GEM car in Gazebo
-        self.sub_image = rospy.Subscriber('/gem/front_single_camera/front_single_camera/image_raw', Image, self.img_callback, queue_size=1)
+        #self.sub_image = rospy.Subscriber('/gem/front_single_camera/front_single_camera/image_raw', Image, self.img_callback, queue_size=1)
         # Uncomment this line for lane detection of videos in rosbag
-        # self.sub_image = rospy.Subscriber('camera/image_raw', Image, self.img_callback, queue_size=1)
+        self.sub_image = rospy.Subscriber('camera/image_raw', Image, self.img_callback, queue_size=1)
         self.pub_image = rospy.Publisher("lane_detection/annotate", Image, queue_size=1)
         self.pub_bird = rospy.Publisher("lane_detection/birdseye", Image, queue_size=1)
         self.left_line = Line(n=5)
@@ -165,10 +165,10 @@ class lanenet_detector():
         #source points from eyeball
         frame = cv2.resize(img, (640, 480))
 
-        tl = (200, 270)
-        bl = (50, 310)
-        tr = (550, 270)
-        br = (640, 305)
+        tl = (200, 290)
+        bl = (5, 410)
+        tr = (430, 290)
+        br = (640, 410)
 
         cv2.circle(frame, tl, 5, (0,0,255), -1)
         cv2.circle(frame, tr, 5, (0,0,255), -1)
@@ -186,6 +186,10 @@ class lanenet_detector():
         warped_img = cv2.warpPerspective(img, M, (640,480))
 
         ####
+        # cv2.imshow("ime", frame)
+        # cv2.imshow("image", warped_img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return warped_img, M, Minv
 
@@ -257,20 +261,19 @@ class lanenet_detector():
 
 if __name__ == '__main__':
     # init args
-    # rospy.init_node('lanenet_node', anonymous=True)
-    # lanenet_detector()
-    # while not rospy.core.is_shutdown():
-    #     rospy.rostime.wallsleep(0.5)
-    path = "./src/mp1/src/test.png"
-    img = cv2.imread(path)
-    ld = lanenet_detector()
-    # gradient_image = ld.gradient_thresh(img)
-    # color_image = ld.color_thresh(img)
-    # print(color_image == 255)
-    # print(gradient_image.find(255))
-    combined_image = ld.combinedBinaryImage(img)
-    warped_img, M, Minv = ld.perspective_transform(combined_image)
-    line_fit(warped_img)
+    rospy.init_node('lanenet_node', anonymous=True)
+    lanenet_detector()
+    while not rospy.core.is_shutdown():
+        rospy.rostime.wallsleep(0.5)
+
+    # path = "./src/mp1/src/test.png"
+    # img = cv2.imread(path)
+    # ld = lanenet_detector()
+    # # gradient_image = ld.gradient_thresh(img)
+    # # color_image = ld.color_thresh(img)
+    # combined_image = ld.combinedBinaryImage(img)
+    # warped_img, M, Minv = ld.perspective_transform(combined_image)
+    # line_fit(warped_img)
 
 
 
