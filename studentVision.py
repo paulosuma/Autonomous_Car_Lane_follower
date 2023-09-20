@@ -11,6 +11,7 @@ from std_msgs.msg import Header
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Float32
 from skimage import morphology
+import matplotlib.pyplot as plt
 
 
 
@@ -68,7 +69,7 @@ class lanenet_detector():
         ddepth = cv2.CV_8U
 
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred_img = cv2.GaussianBlur(grayscale, (3,3))
+        blurred_img = cv2.GaussianBlur(grayscale, (3,3), 0)
 
         x_grad = cv2.Sobel(blurred_img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
         y_grad = cv2.Sobel(blurred_img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
@@ -78,7 +79,10 @@ class lanenet_detector():
 
         #max_thresholding
         thres, binary_output = cv2.threshold(range_thresh, thresh_min, 255, cv2.THRESH_BINARY)
-
+        
+        # cv2.imshow("image", binary_output)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         ####
 
@@ -93,12 +97,15 @@ class lanenet_detector():
         #2. Apply threshold on S channel to get binary image
         #Hint: threshold on H to remove green grass
         ## TODO
-        hsl_img = cv2.cvtColor(img, cv2.COLOR_RGB2HSL)
-        h, s, l = cv2.split(hsl_img)
+        hls_img = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        h, l, s = cv2.split(hls_img)
         range_thresh = cv2.inRange(s, thresh[0], thresh[1])
         thres, binary_output = cv2.threshold(range_thresh, thresh[0], 255, cv2.THRESH_BINARY)
 
         ####
+        # cv2.imshow("image", binary_output)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return binary_output
 
@@ -116,9 +123,32 @@ class lanenet_detector():
         ####
 
         binaryImage = np.zeros_like(self.gradient_thresh(img))
-        binaryImage[(self.color_thresh(img)==1)|(self.gradient_thresh(img)==1)] = 1
+        binaryImage[(self.color_thresh(img)==255)|(self.gradient_thresh(img)==255)] = 255
+
+        # spec_image = self.color_thresh(img)
+        # # print(np.where(spec_image[:, 0] == 255))
+        # # print(np.where(spec_image[:, 639] == 255))
+        # maxzerocol = 0
+        # c = 0
+        # for i in range(640):
+        #     count = np.count_nonzero(spec_image[:, i] == 0)
+        #     if count > c:
+        #         maxzerocol = i
+        #         c =count
+        # print(maxzerocol)
+        # print(np.where(spec_image[:, 311] == 0 ))
+
+        points = np.array([[(0, 387), (0,480), (640,480), (640, 307), (321, 239)]])
+        mask = np.zeros_like(img)
+        graymask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+        cv2.fillPoly(graymask, points, color=(255, 255, 255))
+        binaryImage = cv2.bitwise_and(binaryImage, graymask, mask=None)
+
         # Remove noise from binary image
-        binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
+        #binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
+        # cv2.imshow("image", binaryImage)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return binaryImage
 
@@ -133,20 +163,27 @@ class lanenet_detector():
 
         ## TODO
         #source points from eyeball
-        frame = cv2.resize(img, (640,480))
+        frame = cv2.resize(img, (640, 480))
 
-        t_left = [200, 300]
-        b_left = [50, 450]
-        t_right = [400, 300]
-        b_right = [450, 450]
+        tl = (200, 270)
+        bl = (50, 310)
+        tr = (550, 270)
+        br = (640, 305)
 
-        source_pnts = [t_left, b_left, t_right, b_right]
-        dest_pnts = [[0,0], [0,480], [640,0], [640,480]]
+        cv2.circle(frame, tl, 5, (0,0,255), -1)
+        cv2.circle(frame, tr, 5, (0,0,255), -1)
+        cv2.circle(frame, bl, 5, (0,0,255), -1)
+        cv2.circle(frame, br, 5, (0,0,255), -1)
+
+        source_pnts = np.array([tl, bl, tr, br])
+        dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
+        source_pnts = np.float32(source_pnts[:, np.newaxis, :])
+        dest_pnts = np.float32(dest_pnts[:, np.newaxis, :])
 
         M = cv2.getPerspectiveTransform(source_pnts, dest_pnts)
         Minv = np.linalg.inv(M)
 
-        warped_img = cv2.warpPerspective(frame, M, (640,480))
+        warped_img = cv2.warpPerspective(img, M, (640,480))
 
         ####
 
@@ -220,9 +257,22 @@ class lanenet_detector():
 
 if __name__ == '__main__':
     # init args
-    rospy.init_node('lanenet_node', anonymous=True)
-    lanenet_detector()
-    while not rospy.core.is_shutdown():
-        rospy.rostime.wallsleep(0.5)
+    # rospy.init_node('lanenet_node', anonymous=True)
+    # lanenet_detector()
+    # while not rospy.core.is_shutdown():
+    #     rospy.rostime.wallsleep(0.5)
+    path = "./src/mp1/src/test.png"
+    img = cv2.imread(path)
+    ld = lanenet_detector()
+    # gradient_image = ld.gradient_thresh(img)
+    # color_image = ld.color_thresh(img)
+    # print(color_image == 255)
+    # print(gradient_image.find(255))
+    combined_image = ld.combinedBinaryImage(img)
+    warped_img, M, Minv = ld.perspective_transform(combined_image)
+    line_fit(warped_img)
+
+
+
 
 
