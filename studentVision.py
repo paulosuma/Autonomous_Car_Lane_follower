@@ -13,6 +13,9 @@ from std_msgs.msg import Float32
 from skimage import morphology
 import matplotlib.pyplot as plt
 
+# import rosbag
+# import os
+
 
 
 class lanenet_detector():
@@ -286,23 +289,41 @@ class lanenet_detector():
 
             return combine_fit_img, bird_fit_img
 
+    # def export_image(self):
+        
+    #     bag = rosbag.Bag("./src/mp1/bags/0484_sync.bag", "r")
+    #     bridge = CvBridge()
+    #     count = 0
+    #     for topic, msg, t in bag.read_messages('camera/image_raw'):
+    #         cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+
+    #         cv2.imwrite(os.path.join("./src/image_view/0484", "frame%06i.png" % count), cv_img)
+    #         print ("Wrote image %i" % count)
+
+    #         count += 1
+
+    #     bag.close()
+
+
+
 
 
 if __name__ == '__main__':
     # init args
-    rospy.init_node('lanenet_node', anonymous=True)
-    lanenet_detector()
-    while not rospy.core.is_shutdown():
-        rospy.rostime.wallsleep(0.5)
+    # rospy.init_node('lanenet_node', anonymous=True)
+    # lanenet_detector()
 
-    # path = "./src/mp1/src/0011.jpg"
-    # img = cv2.imread(path)
-    # ld = lanenet_detector()
-    # gradient_image = ld.gradient_thresh(img)
-    # color_image = ld.color_thresh(img)
-    # combined_image = ld.combinedBinaryImage(img)
-    # warped_img, M, Minv = ld.perspective_transform(combined_image)
-    # line_fit(warped_img)
+    # while not rospy.core.is_shutdown():
+    #     rospy.rostime.wallsleep(0.5)
+
+    path = "./src/mp1/src/0056.png"
+    img = cv2.imread(path)
+    ld = lanenet_detector()
+    gradient_image = ld.gradient_thresh(img)
+    color_image = ld.color_thresh(img)
+    combined_image = ld.combinedBinaryImage(img)
+    warped_img, M, Minv = ld.perspective_transform(combined_image)
+    line_fit(warped_img)
 
 
 
