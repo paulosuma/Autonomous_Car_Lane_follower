@@ -53,7 +53,7 @@ class lanenet_detector():
             self.pub_bird.publish(out_bird_msg)
 
 
-    def gradient_thresh(self, img, thresh_min=25, thresh_max=100):
+    def gradient_thresh(self, img, thresh_min=75, thresh_max=100):
         """
         Apply sobel edge detection on input image in x, y direction
         """
@@ -62,7 +62,6 @@ class lanenet_detector():
         #3. Use cv2.Sobel() to find derievatives for both X and Y Axis
         #4. Use cv2.addWeighted() to combine the results
         #5. Convert each pixel to uint8, then apply threshold to get binary image
-
         ## TODO
         scale = 1
         delta = 0
@@ -145,8 +144,8 @@ class lanenet_detector():
         # points = np.array([[(0, 390), (0,480), (640,480), (640, 307), (321, 239)]])
 
         #RVIZ MASK
-        points = np.array([[(250, 375), (650, 140), (900,375)]])
-        pnts_in_lane = np.array([[(450,375), (700,375), (610,230)]])
+        points = np.array([[(220, 375), (650, 170), (790,375)]])
+        pnts_in_lane = np.array([[(425,375), (720,375), (600,210), (650,210)]])
 
         mask = np.zeros_like(img)
         graymask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
@@ -209,6 +208,7 @@ class lanenet_detector():
         Minv = np.linalg.inv(M)
 
         warped_img = cv2.warpPerspective(img, M, (640,480))
+
 
         ####
         # fig = plt.figure()

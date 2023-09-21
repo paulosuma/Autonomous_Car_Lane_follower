@@ -73,16 +73,17 @@ def line_fit(binary_warped):
 		## TODO
 		#left
 		x1, x2 = int(leftx_current-(margin/2)), int(leftx_current+(margin/2))
-		y1, y2 = int(binary_warped.shape[0]-window_height*(window+1)), int(binary_warped.shape[0]-window_height*(window))
+		y1, y2 = int(binary_warped.shape[0]-(window_height*(window+1))), int(binary_warped.shape[0]-(window_height*(window)))
 		left_rectange = binary_warped[y1:y2, x1:x2]
 		nonzeroleft = left_rectange.nonzero()
-		if len(nonzeroleft[0]) == 0: #empty
-			nonzeroleft = list(nonzeroleft) 
-			nonzeroleft[0] = np.array([int(window_height/2)+(int(binary_warped.shape[0]-window_height*(window+1)))])
-			nonzeroleft[1] = np.array([int(margin/2)+(int(leftx_current-(margin/2)))])
-			nonzeroleft = tuple(nonzeroleft)
+		# if len(nonzeroleft[0]) == 0: #empty
+		# 	nonzeroleft = list(nonzeroleft) 
+		# 	nonzeroleft[0] = np.array([int(window_height/2)])
+		# 	nonzeroleft[1] = np.array([int(margin/2)])
+		# 	nonzeroleft = tuple(nonzeroleft)
 		true_nonzerolefty = nonzeroleft[0]+(int(binary_warped.shape[0]-window_height*(window+1)))
-		# true_nonzeroleftx = nonzeroleft[1]+(int(leftx_current-(margin/2)))
+		true_nonzeroleftx = nonzeroleft[1]+(int(leftx_current-(margin/2)))
+		appendnonzeroleft = (true_nonzerolefty, true_nonzeroleftx)
 
 
 		#right
@@ -90,27 +91,36 @@ def line_fit(binary_warped):
 		y1r, y2r = int(binary_warped.shape[0]-window_height*(window+1)), int(binary_warped.shape[0]-window_height*(window))
 		right_rectange = binary_warped[y1r:y2r, x1r:x2r]
 		nonzeroright = right_rectange.nonzero()
-		if len(nonzeroright[0]) == 0: #empty
-			nonzeroright = list(nonzeroright) 
-			nonzeroright[0] = np.array([int(window_height/2)+(int(binary_warped.shape[0]-window_height*(window+1)))])
-			nonzeroright[1] = np.array([int(margin/2)+(int(rightx_current-(margin/2)))])
-			nonzeroright = tuple(nonzeroright)
-			
+		# if len(nonzeroright[0]) == 0: #empty
+		# 	nonzeroright = list(nonzeroright) 
+		# 	nonzeroright[0] = np.array([int(window_height/2)])
+		# 	nonzeroright[1] = np.array([int(margin/2)])
+		# 	nonzeroright = tuple(nonzeroright)
 		true_nonzerorighty = nonzeroright[0]+(int(binary_warped.shape[0]-window_height*(window+1)))
-		# true_nonzerorightx = nonzeroright[1]+(int(rightx_current-(margin/2)))
+		true_nonzerorightx = nonzeroright[1]+(int(rightx_current-(margin/2)))
+		appendnonzeroright = (true_nonzerorighty, true_nonzerorightx)
 
 		####
 		# Append these indices to the lists
 		## TODO
 
-		left_lane_inds.append(true_nonzerolefty)
-		right_lane_inds.append(true_nonzerorighty)
+		left_lane_inds.append(appendnonzeroleft)
+		right_lane_inds.append(appendnonzeroright)
 
 		####
 		# If you found > minpix pixels, recenter next window on their mean position
 		## TODO
+		if len(nonzeroleft[0]) == 0: #empty
+			nonzeroleft = list(nonzeroleft) 
+			nonzeroleft[0] = np.array([int(window_height/2)])
+			nonzeroleft[1] = np.array([int(margin/2)])
+			nonzeroleft = tuple(nonzeroleft)
+		if len(nonzeroright[0]) == 0: #empty
+			nonzeroright = list(nonzeroright) 
+			nonzeroright[0] = np.array([int(window_height/2)])
+			nonzeroright[1] = np.array([int(margin/2)])
+			nonzeroright = tuple(nonzeroright)
 		mean_xl = np.mean(nonzeroleft[1])
-
 		mean_xr = np.mean(nonzeroright[1])
 
 		if mean_xl>minpix: 
@@ -124,14 +134,20 @@ def line_fit(binary_warped):
 			rightx_current = rightx_current - (minpix-mean_xr)
 
 	# Concatenate the arrays of indices
-	left_lane_inds = np.concatenate(left_lane_inds)
-	right_lane_inds = np.concatenate(right_lane_inds)
+	left_lane_inds = np.concatenate(left_lane_inds, axis=1)
+	right_lane_inds = np.concatenate(right_lane_inds, axis=1)
 
 	# Extract left and right line pixel positions
-	leftx = nonzerox[left_lane_inds]
-	lefty = nonzeroy[left_lane_inds]
-	rightx = nonzerox[right_lane_inds]
-	righty = nonzeroy[right_lane_inds]
+	leftx = left_lane_inds[1]
+	print(len(leftx))
+	lefty = left_lane_inds[0]
+	print(len(lefty))
+	rightx = right_lane_inds[1]
+	# print(len(rightx))
+	righty = right_lane_inds[0]
+	# leftx.replace(np.inf, np.nan).replace(-np.inf, np.nan).dropna()
+	# lefty.replace(np.inf, np.nan).replace(-np.inf, np.nan).dropna()
+	# print(righty)
 
 	# Fit a second order polynomial to each using np.polyfit()
 	# If there isn't a good fit, meaning any of leftx, lefty, rightx, and righty are empty,
@@ -144,7 +160,11 @@ def line_fit(binary_warped):
 		y_variable = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
 		left_fit = left_coeff[0] * y_variable ** 2 + left_coeff[1] * y_variable + left_coeff[2]
 		right_fit = right_coeff[0] * y_variable ** 2 + right_coeff[1] * y_variable + right_coeff[2]
-
+		# plt.plot(y_variable, left_fit)
+		# plt.plot(lefty, leftx, "o")
+		# plt.plot(righty, rightx, '*')
+		# plt.plot(y_variable, right_fit)
+		# plt.show()
 	####
 	except TypeError:
 		print("Unable to detect lanes")
