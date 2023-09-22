@@ -67,13 +67,9 @@ def line_fit(binary_warped):
 		####
 		# Identify the nonzero pixels in x and y within the window
 		## TODO
-		#left
 		nonzeroleft = ((nonzerox>=tl[0])&(nonzerox<br[0])&(nonzeroy>=tl[1])&(nonzeroy<br[1])).nonzero()[0]
 		nonzeroright = ((nonzerox>=tlr[0])&(nonzerox<brr[0])&(nonzeroy>=tlr[1])&(nonzeroy<brr[1])).nonzero()[0]
-		# print(nonzerox[nonzeroleft])
-		# print(len(nonzerox[nonzeroleft]))
-		# print(nonzeroy[nonzeroright])
-		# print(len(nonzeroy[nonzeroright]))
+
 		# ####
 		# Append these indices to the lists
 		## TODO
@@ -92,7 +88,6 @@ def line_fit(binary_warped):
 	left_lane_inds = np.concatenate(left_lane_inds)
 	right_lane_inds = np.concatenate(right_lane_inds)
 
-
 	# Extract left and right line pixel positions
 	leftx = nonzerox[left_lane_inds]
 	lefty = nonzeroy[left_lane_inds]
@@ -109,15 +104,6 @@ def line_fit(binary_warped):
 
 		left_coeff = np.polyfit(lefty, leftx, 2)
 		right_coeff = np.polyfit(righty, rightx, 2)
-		y_variable = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
-		print(y_variable)
-		left_fit = left_coeff[0] * y_variable ** 2 + left_coeff[1] * y_variable + left_coeff[2]
-		right_fit = right_coeff[0] * y_variable ** 2 + right_coeff[1] * y_variable + right_coeff[2]
-		plt.plot(y_variable, left_fit)
-		plt.plot(lefty, leftx, "o")
-		plt.plot(righty, rightx, 'o')
-		plt.plot(y_variable, right_fit)
-		plt.show()
 	###
 	except TypeError:
 		print("Unable to detect lanes")
