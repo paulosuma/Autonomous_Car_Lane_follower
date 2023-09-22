@@ -69,18 +69,19 @@ class lanenet_detector():
         ddepth = cv2.CV_8U
 
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred_img = cv2.GaussianBlur(grayscale, (3,3), 0)
+        blurred_img = cv2.GaussianBlur(grayscale, (5,5), 0)
+
 
         x_grad = cv2.Sobel(blurred_img, ddepth, 1, 0, ksize=3)
         y_grad = cv2.Sobel(blurred_img, ddepth, 0, 1, ksize=3)
 
-        combinedgrad = cv2.addWeighted(x_grad, 0.5, y_grad, 0.5, 0)
+        combinedgrad = cv2.addWeighted(x_grad, 0.9, y_grad, 0.1, 0)
 
         #max_thresholding
-        thres, binary_output = cv2.threshold(combinedgrad, thresh_max, 255, cv2.THRESH_BINARY)
+        thres, binary_output = cv2.threshold(combinedgrad, thresh_min, 255, cv2.THRESH_BINARY)
         
-        # fig = plt.figure()
-        # r, c = 1, 2
+        fig = plt.figure()
+        r, c = 1, 2
         # fig.add_subplot(r, c, 1)
         # plt.imshow(img)
         # fig.add_subplot(r, c, 2)
@@ -151,15 +152,15 @@ class lanenet_detector():
         binaryImage = cv2.bitwise_and(binaryImage, graymask, mask=None)
 
         # Remove noise from binary image
-        #binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
+        binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
         
-        # fig = plt.figure()
-        # r, c = 1, 2
-        # fig.add_subplot(r, c, 1)
-        # plt.imshow(img)
-        # fig.add_subplot(r, c, 2)
-        # plt.imshow(binaryImage)
-        # plt.show()
+        fig = plt.figure()
+        r, c = 1, 2
+        fig.add_subplot(r, c, 1)
+        plt.imshow(img)
+        fig.add_subplot(r, c, 2)
+        plt.imshow(binaryImage)
+        plt.show()
 
         return binaryImage
 
@@ -314,18 +315,18 @@ class lanenet_detector():
 
 if __name__ == '__main__':
     # init args
-    rospy.init_node('lanenet_node', anonymous=True)
-    lanenet_detector()
+    # rospy.init_node('lanenet_node', anonymous=True)
+    # lanenet_detector()
 
-    while not rospy.core.is_shutdown():
-        rospy.rostime.wallsleep(0.5)
+    # while not rospy.core.is_shutdown():
+    #     rospy.rostime.wallsleep(0.5)
 
-    # path = "./src/mp1/src/0011.png"
-    # img = cv2.imread(path)
-    # ld = lanenet_detector()
+    path = "./src/mp1/src/0011.png"
+    img = cv2.imread(path)
+    ld = lanenet_detector()
     # gradient_image = ld.gradient_thresh(img)
     # color_image = ld.color_thresh(img)
-    # combined_image = ld.combinedBinaryImage(img)
+    combined_image = ld.combinedBinaryImage(img)
     # warped_img, M, Minv = ld.perspective_transform(combined_image)
     # line_fit(warped_img)
 
