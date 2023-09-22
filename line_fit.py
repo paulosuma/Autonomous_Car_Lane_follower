@@ -68,39 +68,33 @@ def line_fit(binary_warped):
 		# Identify the nonzero pixels in x and y within the window
 		## TODO
 		#left
-		filterleft = ((nonzerox>=tl[0])&(nonzerox<br[0])&(nonzeroy>=tl[1])&(nonzeroy<br[1])).nonzero()
-		nonzeroleft = (nonzeroy[filterleft], nonzerox[filterleft])
-		filterright = ((nonzerox>=tlr[0])&(nonzerox<brr[0])&(nonzeroy>=tlr[1])&(nonzeroy<brr[1])).nonzero()
-		nonzeroright = (nonzeroy[filterright], nonzerox[filterright])
-		
+		nonzeroleft = ((nonzerox>=tl[0])&(nonzerox<br[0])&(nonzeroy>=tl[1])&(nonzeroy<br[1])).nonzero()[0]
+		nonzeroright = ((nonzerox>=tlr[0])&(nonzerox<brr[0])&(nonzeroy>=tlr[1])&(nonzeroy<brr[1])).nonzero()[0]
+
 		####
 		# Append these indices to the lists
 		## TODO
-
 		left_lane_inds.append(nonzeroleft)
 		right_lane_inds.append(nonzeroright)
 
 		####
 		# If you found > minpix pixels, recenter next window on their mean position
 		## TODO
-		if len(nonzeroleft[0]) > minpix:
-			leftx_current = np.mean(nonzeroleft[1])
-		if len(nonzeroright[0]) > minpix: 
-			rightx_current = np.mean(nonzeroright[1])
+		if len(nonzeroleft) > minpix:
+			leftx_current = np.mean(nonzerox[nonzeroleft])
+		if len(nonzeroright) > minpix: 
+			rightx_current = np.mean(nonzerox[nonzeroright])
 
 	# Concatenate the arrays of indices
-	left_lane_inds = np.concatenate(left_lane_inds, axis=1)
-	right_lane_inds = np.concatenate(right_lane_inds, axis=1)
+	left_lane_inds = np.concatenate(left_lane_inds)
+	right_lane_inds = np.concatenate(right_lane_inds)
 
 	# Extract left and right line pixel positions
-	leftx = left_lane_inds[1]
-	lefty = left_lane_inds[0]
-	rightx = right_lane_inds[1]
-	righty = right_lane_inds[0]
+	leftx = nonzerox[left_lane_inds]
+	lefty = nonzeroy[left_lane_inds]
+	rightx = nonzerox[right_lane_inds]
+	righty = nonzeroy[right_lane_inds]
 
-	# leftx.replace(np.inf, np.nan).replace(-np.inf, np.nan).dropna()
-	# lefty.replace(np.inf, np.nan).replace(-np.inf, np.nan).dropna()
-	# print(righty)
 
 	# Fit a second order polynomial to each using np.polyfit()
 	# If there isn't a good fit, meaning any of leftx, lefty, rightx, and righty are empty,
@@ -108,13 +102,9 @@ def line_fit(binary_warped):
 	# Thus, it is unable to detect edges.
 	try:
 	## TODO
-		idxleftx = np.isfinite(leftx)
-		idxlefty = np.isfinite(lefty)
-		idxrightx = np.isfinite(rightx)
-		idxrighty = np.isfinite(righty)
 
-		left_coeff = np.polyfit(lefty[idxlefty], leftx[idxleftx], 2)
-		right_coeff = np.polyfit(righty[idxrighty], rightx[idxrightx], 2)
+		left_coeff = np.polyfit(lefty, leftx, 2)
+		right_coeff = np.polyfit(righty, rightx, 2)
 		y_variable = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
 		left_fit = left_coeff[0] * y_variable ** 2 + left_coeff[1] * y_variable + left_coeff[2]
 		right_fit = right_coeff[0] * y_variable ** 2 + right_coeff[1] * y_variable + right_coeff[2]

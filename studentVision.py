@@ -56,7 +56,7 @@ class lanenet_detector():
             self.pub_bird.publish(out_bird_msg)
 
 
-    def gradient_thresh(self, img, thresh_min=75, thresh_max=100):
+    def gradient_thresh(self, img, thresh_min=25, thresh_max=100):
         """
         Apply sobel edge detection on input image in x, y direction
         """
@@ -66,25 +66,26 @@ class lanenet_detector():
         #4. Use cv2.addWeighted() to combine the results
         #5. Convert each pixel to uint8, then apply threshold to get binary image
         ## TODO
-        scale = 1
-        delta = 0
         ddepth = cv2.CV_8U
 
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blurred_img = cv2.GaussianBlur(grayscale, (3,3), 0)
 
-        x_grad = cv2.Sobel(blurred_img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-        y_grad = cv2.Sobel(blurred_img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
+        x_grad = cv2.Sobel(blurred_img, ddepth, 1, 0, ksize=3)
+        y_grad = cv2.Sobel(blurred_img, ddepth, 0, 1, ksize=3)
 
         combinedgrad = cv2.addWeighted(x_grad, 0.5, y_grad, 0.5, 0)
-        range_thresh = cv2.inRange(combinedgrad, thresh_min, thresh_max)
 
         #max_thresholding
-        thres, binary_output = cv2.threshold(range_thresh, thresh_min, 255, cv2.THRESH_BINARY)
+        thres, binary_output = cv2.threshold(combinedgrad, thresh_max, 255, cv2.THRESH_BINARY)
         
+        # fig = plt.figure()
+        # r, c = 1, 2
+        # fig.add_subplot(r, c, 1)
+        # plt.imshow(img)
+        # fig.add_subplot(r, c, 2)
         # plt.imshow(binary_output)
         # plt.show()
-
         ####
 
         return binary_output
@@ -100,8 +101,7 @@ class lanenet_detector():
         ## TODO
         hls_img = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_img)
-        range_thresh = cv2.inRange(s, thresh[0], thresh[1])
-        thres, binary_output = cv2.threshold(range_thresh, thresh[0], 255, cv2.THRESH_BINARY)
+        thres, binary_output = cv2.threshold(s, thresh[0], 255, cv2.THRESH_BINARY)
 
         ####
         # fig = plt.figure()
@@ -126,29 +126,23 @@ class lanenet_detector():
         ## TODO
 
         ####
-
+        #layer for creating mask
         binaryImage = np.zeros_like(self.gradient_thresh(img))
         binaryImage[(self.color_thresh(img)==255)|(self.gradient_thresh(img)==255)] = 255
 
-        # spec_image = self.color_thresh(img)
-        # # print(np.where(spec_image[:, 0] == 255))
-        # # print(np.where(spec_image[:, 639] == 255))
-        # maxzerocol = 0
-        # c = 0
-        # for i in range(640):
-        #     count = np.count_nonzero(spec_image[:, i] == 0)
-        #     if count > c:
-        #         maxzerocol = i
-        #         c =count
-        # print(maxzerocol)
-        # print(np.where(spec_image[:, 311] == 0 ))
 
         # #GAZEBO MASK
         # points = np.array([[(0, 390), (0,480), (640,480), (640, 307), (321, 239)]])
 
         #RVIZ MASK
+        #Image 0011
         points = np.array([[(220, 375), (650, 170), (790,375)]])
-        pnts_in_lane = np.array([[(425,375), (720,375), (600,210), (650,210)]])
+        pnts_in_lane = np.array([[(340,375), (750,375), (625,190), (660,190)]])
+
+        #Image 0056
+        # points = np.array([[(220, 375), (650, 170), (790,375)]])
+        # pnts_in_lane = np.array([[(425,375), (720,375), (600,210), (650,210)]])
+
 
         mask = np.zeros_like(img)
         graymask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
@@ -158,6 +152,7 @@ class lanenet_detector():
 
         # Remove noise from binary image
         #binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
+        
         # fig = plt.figure()
         # r, c = 1, 2
         # fig.add_subplot(r, c, 1)
@@ -195,13 +190,22 @@ class lanenet_detector():
 
 
         #RVIZ
-        tl = (560, 200)
-        bl = (350, 350)
-        tr = (690, 200)
-        br = (825, 350)
+
+        #Image 0011
+        tl = (540, 210)
+        bl = (375, 310)
+        tr = (700, 210)
+        br = (750, 310)
         source_pnts = np.array([tl, bl, tr, br])
         dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
 
+        #Image 0056
+        # tl = (560, 200)
+        # bl = (350, 350)
+        # tr = (690, 200)
+        # br = (825, 350)
+        # source_pnts = np.array([tl, bl, tr, br])
+        # dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
 
 
         source_pnts = np.float32(source_pnts[:, np.newaxis, :])
@@ -310,20 +314,20 @@ class lanenet_detector():
 
 if __name__ == '__main__':
     # init args
-    # rospy.init_node('lanenet_node', anonymous=True)
-    # lanenet_detector()
+    rospy.init_node('lanenet_node', anonymous=True)
+    lanenet_detector()
 
-    # while not rospy.core.is_shutdown():
-    #     rospy.rostime.wallsleep(0.5)
+    while not rospy.core.is_shutdown():
+        rospy.rostime.wallsleep(0.5)
 
-    path = "./src/mp1/src/0056.png"
-    img = cv2.imread(path)
-    ld = lanenet_detector()
-    gradient_image = ld.gradient_thresh(img)
-    color_image = ld.color_thresh(img)
-    combined_image = ld.combinedBinaryImage(img)
-    warped_img, M, Minv = ld.perspective_transform(combined_image)
-    line_fit(warped_img)
+    # path = "./src/mp1/src/0011.png"
+    # img = cv2.imread(path)
+    # ld = lanenet_detector()
+    # gradient_image = ld.gradient_thresh(img)
+    # color_image = ld.color_thresh(img)
+    # combined_image = ld.combinedBinaryImage(img)
+    # warped_img, M, Minv = ld.perspective_transform(combined_image)
+    # line_fit(warped_img)
 
 
 
