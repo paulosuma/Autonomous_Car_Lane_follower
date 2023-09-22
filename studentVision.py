@@ -69,25 +69,29 @@ class lanenet_detector():
         ddepth = cv2.CV_8U
 
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred_img = cv2.GaussianBlur(grayscale, (5,5), 0)
+        blurred_img = cv2.GaussianBlur(grayscale, (3,3), 0)
 
 
         x_grad = cv2.Sobel(blurred_img, ddepth, 1, 0, ksize=3)
         y_grad = cv2.Sobel(blurred_img, ddepth, 0, 1, ksize=3)
 
-        combinedgrad = cv2.addWeighted(x_grad, 0.9, y_grad, 0.1, 0)
+        combinedgrad = cv2.addWeighted(x_grad, 1.0, y_grad, 0.0, 0)
 
         #max_thresholding
         thres, binary_output = cv2.threshold(combinedgrad, thresh_min, 255, cv2.THRESH_BINARY)
-        
-        fig = plt.figure()
-        r, c = 1, 2
+
+        # fig = plt.figure()
+        # r, c = 1, 2
         # fig.add_subplot(r, c, 1)
         # plt.imshow(img)
         # fig.add_subplot(r, c, 2)
         # plt.imshow(binary_output)
         # plt.show()
-        ####
+        # ####
+        # if(thres == False):
+        #     print('Error in thresholding')
+        # else:
+        #     return binary_output
 
         return binary_output
 
@@ -103,7 +107,6 @@ class lanenet_detector():
         hls_img = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_img)
         thres, binary_output = cv2.threshold(s, thresh[0], 255, cv2.THRESH_BINARY)
-
         ####
         # fig = plt.figure()
         # r, c = 1, 2
@@ -131,7 +134,6 @@ class lanenet_detector():
         binaryImage = np.zeros_like(self.gradient_thresh(img))
         binaryImage[(self.color_thresh(img)==255)|(self.gradient_thresh(img)==255)] = 255
 
-
         # #GAZEBO MASK
         # points = np.array([[(0, 390), (0,480), (640,480), (640, 307), (321, 239)]])
 
@@ -152,16 +154,16 @@ class lanenet_detector():
         binaryImage = cv2.bitwise_and(binaryImage, graymask, mask=None)
 
         # Remove noise from binary image
-        binaryImage = morphology.remove_small_objects(binaryImage.astype('bool'),min_size=50,connectivity=2)
-        
-        fig = plt.figure()
-        r, c = 1, 2
-        fig.add_subplot(r, c, 1)
-        plt.imshow(img)
-        fig.add_subplot(r, c, 2)
-        plt.imshow(binaryImage)
-        plt.show()
+        binaryImage = morphology.remove_small_objects(binaryImage,min_size=50,connectivity=2)
 
+        # fig = plt.figure()
+        # r, c = 1, 2
+        # fig.add_subplot(r, c, 1)
+        # plt.imshow(img)
+        # fig.add_subplot(r, c, 2)
+        # plt.imshow(binaryImage)
+        # plt.show()
+        # print(binaryImage)
         return binaryImage
 
 
@@ -178,44 +180,38 @@ class lanenet_detector():
         # frame = cv2.resize(img, (640, 480))
 
         #GAZEBO
-        # tl = (275, 255)
-        # bl = (5, 400)
-        # tr = (365, 255)
-        # br = (640, 400)
-        # cv2.circle(frame, tl, 5, (0,0,255), -1)
-        # cv2.circle(frame, tr, 5, (0,0,255), -1)
-        # cv2.circle(frame, bl, 5, (0,0,255), -1)
-        # cv2.circle(frame, br, 5, (0,0,255), -1)
-        # source_pnts = np.array([tl, bl, tr, br])
-        # dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
+        # tl = [275, 255]
+        # bl = [5, 400]
+        # tr = [365, 255]
+        # br = [640, 400]
+        # source_pnts = np.float32([tl, bl, tr, br])
+        # dest_pnts = np.float32([[0,0], [0,480], [640,0], [640,480]])
 
 
         #RVIZ
 
         #Image 0011
-        tl = (540, 210)
-        bl = (375, 310)
-        tr = (700, 210)
-        br = (750, 310)
-        source_pnts = np.array([tl, bl, tr, br])
-        dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
+        tl = [540, 210]
+        bl = [375, 310]
+        tr = [700, 210]
+        br = [750, 310]
+        source_pnts = np.float32([tl, bl, tr, br])
+        dest_pnts = np.float32([[0,0], [0,img.shape[0]], [img.shape[1],0], [img.shape[1],img.shape[0]]])
 
         #Image 0056
         # tl = (560, 200)
         # bl = (350, 350)
         # tr = (690, 200)
         # br = (825, 350)
-        # source_pnts = np.array([tl, bl, tr, br])
-        # dest_pnts = np.array([[0,0], [0,480], [640,0], [640,480]])
+        # source_pnts = np.float32([tl, bl, tr, br])
+        # dest_pnts = np.float32([[0,0], [0,480], [640,0], [640,480]])
 
-
-        source_pnts = np.float32(source_pnts[:, np.newaxis, :])
-        dest_pnts = np.float32(dest_pnts[:, np.newaxis, :])
 
         M = cv2.getPerspectiveTransform(source_pnts, dest_pnts)
         Minv = np.linalg.inv(M)
+        # print(img)
 
-        warped_img = cv2.warpPerspective(img, M, (640,480))
+        warped_img = cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
 
 
         ####
@@ -315,18 +311,18 @@ class lanenet_detector():
 
 if __name__ == '__main__':
     # init args
-    # rospy.init_node('lanenet_node', anonymous=True)
-    # lanenet_detector()
+    rospy.init_node('lanenet_node', anonymous=True)
+    lanenet_detector()
 
-    # while not rospy.core.is_shutdown():
-    #     rospy.rostime.wallsleep(0.5)
+    while not rospy.core.is_shutdown():
+        rospy.rostime.wallsleep(0.5)
 
-    path = "./src/mp1/src/0011.png"
-    img = cv2.imread(path)
-    ld = lanenet_detector()
-    # gradient_image = ld.gradient_thresh(img)
-    # color_image = ld.color_thresh(img)
-    combined_image = ld.combinedBinaryImage(img)
+    # path = "./src/mp1/src/0011.png"
+    # img = cv2.imread(path)
+    # ld = lanenet_detector()
+    # # gradient_image = ld.gradient_thresh(img)
+    # # color_image = ld.color_thresh(img)
+    # combined_image = ld.combinedBinaryImage(img)
     # warped_img, M, Minv = ld.perspective_transform(combined_image)
     # line_fit(warped_img)
 
