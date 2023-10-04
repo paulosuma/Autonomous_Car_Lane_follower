@@ -66,25 +66,33 @@ class vehicleController():
     def longititudal_controller(self, curr_x, curr_y, curr_vel, curr_yaw, future_unreached_waypoints):
 
         ####################### TODO: Your TASK 2 code starts Here #######################
-        target_velocity = 10
+        max_velocity = 11.5
+
+        # no_of_target_waypoints = 5
+        # curr_stretch = future_unreached_waypoints[:5]
+        # #vertical straight
+        # delta_x = abs(curr_stretch[0, 0] - curr_stretch[-1, 0])
+        # delta_y = abs(curr_stretch[0, 1] - curr_stretch[-1, 1])
+        # theta = math.atan()
+
+        if len(future_unreached_waypoints) < 5:
+            x, y = future_unreached_waypoints[0]
+        else:
+            x, y = future_unreached_waypoints[3]
+
+        P_T_G = np.array([x, y, 1])
+        Homo_B_G = np.array([[math.cos(curr_yaw), -math.sin(curr_yaw), curr_x], 
+                          [math.sin(curr_yaw), math.cos(curr_yaw), curr_y], 
+                          [0, 0, 1]])
+        P_T_B = np.matmul(np.linalg.inv(Homo_B_G), P_T_G)
+
+        alpha = math.atan2(P_T_B[1], P_T_B[0])
         
-        curr_state = np.array([curr_x, curr_y, curr_vel, curr_yaw])
-        desired_state = np.array([future_unreached_waypoints[0], future_unreached_waypoints[1], target_velocity, 0])
-        error = desired_state-curr_state
+        # print(alpha)
         
-        delta_s = #along track error
-        delta_n = #crosstrack error
-        delta_theta = #headind error
-        delta_v = #velocity error
+        target_velocity = max_velocity * math.cos(alpha)
 
-        #if future waypoint is straight ahead
-        target_velocity = 12
-
-        #if there is a curve ahead 
-        target_velocity = 8
-
-
-
+        
         ####################### TODO: Your TASK 2 code ends Here #######################
         return target_velocity
 
@@ -93,19 +101,19 @@ class vehicleController():
     def pure_pursuit_lateral_controller(self, curr_x, curr_y, curr_yaw, target_point, future_unreached_waypoints):
 
         ####################### TODO: Your TASK 3 code starts Here #######################
-        target_steering = 0
+        target_steering = .8
 
 
         ld = math.sqrt((curr_x-target_point[0])**2 + (curr_y-target_point[1])**2)
         
 
         P_T_G = np.array([target_point[0], target_point[1], 1])
-        Homo_B_G = np.array[[math.cos(curr_yaw, -math.sin(curr_yaw)), curr_x], 
+        Homo_B_G = np.array([[math.cos(curr_yaw), -math.sin(curr_yaw), curr_x], 
                           [math.sin(curr_yaw), math.cos(curr_yaw), curr_y], 
-                          [0, 0, 1]]
+                          [0, 0, 1]])
         P_T_B = np.matmul(np.linalg.inv(Homo_B_G), P_T_G)
 
-        alpha = math.atan2(P_T_B[1]/P_T_B[0])
+        alpha = math.atan2(P_T_B[1], P_T_B[0])
 
         target_steering = math.atan((2*self.L*math.sin(alpha))/ld)
 
