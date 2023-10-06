@@ -66,19 +66,13 @@ class vehicleController():
     def longititudal_controller(self, curr_x, curr_y, curr_vel, curr_yaw, future_unreached_waypoints):
 
         ####################### TODO: Your TASK 2 code starts Here #######################
-        max_velocity = 11.5
-
-        # no_of_target_waypoints = 5
-        # curr_stretch = future_unreached_waypoints[:5]
-        # #vertical straight
-        # delta_x = abs(curr_stretch[0, 0] - curr_stretch[-1, 0])
-        # delta_y = abs(curr_stretch[0, 1] - curr_stretch[-1, 1])
-        # theta = math.atan()
+        
+        max_velocity = 12
 
         if len(future_unreached_waypoints) < 5:
-            x, y = future_unreached_waypoints[0]
+            return 9
         else:
-            x, y = future_unreached_waypoints[3]
+            x, y = future_unreached_waypoints[2]
 
         P_T_G = np.array([x, y, 1])
         Homo_B_G = np.array([[math.cos(curr_yaw), -math.sin(curr_yaw), curr_x], 
@@ -87,8 +81,13 @@ class vehicleController():
         P_T_B = np.matmul(np.linalg.inv(Homo_B_G), P_T_G)
 
         alpha = math.atan2(P_T_B[1], P_T_B[0])
+
+        if(abs(alpha)>0.3) and (abs(alpha)<0.5):
+            return 9 * math.cos(alpha)
+        if(abs(alpha)>0.5):
+            return 8 * math.cos(alpha)
         
-        # print(alpha)
+        print(alpha)
         
         target_velocity = max_velocity * math.cos(alpha)
 
