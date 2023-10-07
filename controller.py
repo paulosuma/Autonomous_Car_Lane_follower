@@ -15,7 +15,8 @@ class vehicleController():
         self.controlPub = rospy.Publisher("/ackermann_cmd", AckermannDrive, queue_size = 1)
         self.prev_vel = 0
         self.L = 1.75 # Wheelbase, can be get from gem_control.py
-        self.log_acceleration = False
+        self.log_acceleration = True
+        self.prev_alpha = 0
 
     def getModelState(self):
         # Get the current state of the vehicle
@@ -66,28 +67,25 @@ class vehicleController():
     def longititudal_controller(self, curr_x, curr_y, curr_vel, curr_yaw, future_unreached_waypoints):
 
         ####################### TODO: Your TASK 2 code starts Here #######################
-        
         max_velocity = 12
 
         if len(future_unreached_waypoints) < 5:
-            return 9
+            x, y = future_unreached_waypoints[0]
         else:
-            x, y = future_unreached_waypoints[2]
+            x, y = future_unreached_waypoints[3]
 
         P_T_G = np.array([x, y, 1])
         Homo_B_G = np.array([[math.cos(curr_yaw), -math.sin(curr_yaw), curr_x], 
                           [math.sin(curr_yaw), math.cos(curr_yaw), curr_y], 
                           [0, 0, 1]])
         P_T_B = np.matmul(np.linalg.inv(Homo_B_G), P_T_G)
-
         alpha = math.atan2(P_T_B[1], P_T_B[0])
-
-        if(abs(alpha)>0.3) and (abs(alpha)<0.5):
-            return 9 * math.cos(alpha)
-        if(abs(alpha)>0.5):
-            return 8 * math.cos(alpha)
         
-        print(alpha)
+        # print(alpha)
+        if(abs(alpha)>0.3) and (abs(alpha)<0.5):
+            return 10.5 * math.cos(alpha)
+        if(abs(alpha)>0.5):
+            return 9.5 * math.cos(alpha)
         
         target_velocity = max_velocity * math.cos(alpha)
 
@@ -101,10 +99,17 @@ class vehicleController():
 
         ####################### TODO: Your TASK 3 code starts Here #######################
         target_steering = .8
+      
+        # if len(future_unreached_waypoints)>=2:
+        #     x1, y1 = future_unreached_waypoints[0]
+        #     x2, y2 = future_unreached_waypoints[1]
+        #     x3, y3 = (x2+x1)/2, (y2+y1)/2
+        #     ld = math.sqrt((curr_x-x3)**2 + (curr_y-y3)**2)
+        # else:
+        # ld = math.sqrt((curr_x-target_point[0])**2 + (curr_y-target_point[1])**2)
+        # print(ld)
 
-
-        ld = math.sqrt((curr_x-target_point[0])**2 + (curr_y-target_point[1])**2)
-        
+        max_ld = 10
 
         P_T_G = np.array([target_point[0], target_point[1], 1])
         Homo_B_G = np.array([[math.cos(curr_yaw), -math.sin(curr_yaw), curr_x], 
@@ -113,6 +118,11 @@ class vehicleController():
         P_T_B = np.matmul(np.linalg.inv(Homo_B_G), P_T_G)
 
         alpha = math.atan2(P_T_B[1], P_T_B[0])
+
+        steering_diff = abs(alpha-self.prev_alpha)
+        self.prev_alpha = alpha
+
+        ld = max_ld*math.cos(steering_diff) 
 
         target_steering = math.atan((2*self.L*math.sin(alpha))/ld)
 
@@ -137,7 +147,10 @@ class vehicleController():
         if self.log_acceleration:
             acceleration = (curr_vel- self.prev_vel) * 100 # Since we are running in 100Hz
 
+        # print(acceleration)
+        self.prev_vel = curr_vel
 
+        print(curr_x, curr_y)
 
         target_velocity = self.longititudal_controller(curr_x, curr_y, curr_vel, curr_yaw, future_unreached_waypoints)
         target_steering = self.pure_pursuit_lateral_controller(curr_x, curr_y, curr_yaw, target_point, future_unreached_waypoints)
@@ -155,3 +168,5 @@ class vehicleController():
         newAckermannCmd = AckermannDrive()
         newAckermannCmd.speed = 0
         self.controlPub.publish(newAckermannCmd)
+
+
