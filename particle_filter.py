@@ -51,6 +51,8 @@ class particleFilter:
         self.modelStatePub = rospy.Publisher("/gazebo/set_model_state", ModelState, queue_size=1)
         self.controlSub = rospy.Subscriber("/gem/control", Float32MultiArray, self.__controlHandler, queue_size = 1)
         self.control = []                   # A list of control signal from the vehicle
+
+
         return
 
     def __controlHandler(self,data):
@@ -124,7 +126,9 @@ class particleFilter:
             U = r + j*(1/self.num_particles)
             while U > c:
                 i +=1 
-                c += particle_array[i].weight
+                if i < self.num_particles:
+                    c += particle_array[i].weight
+                
             particles_new.append(particle_array[i])
 
         ###############
@@ -149,6 +153,9 @@ class particleFilter:
                 integrator.set_initial_value(vars, t0).set_f_params(vr, delta)
                 [p.x, p.y, p.heading] = integrator.integrate(t_step)
         
+        # for p in self.particles:
+        #     print([p.x, p.y, p.heading])
+        
 
         ###############
         # pass
@@ -163,8 +170,16 @@ class particleFilter:
         while True:
             ## TODO: (i) Implement Section 3.2.2. (ii) Display robot and particles on map. (iii) Compute and save position/heading error to plot. #####
             self.particleMotionModel()
-            reading = vehicle_read_sensor()
+            reading = self.bob.read_sensor()
             self.updateWeight(reading)
             self.resampleParticle()
+
+            self.world.show_estimated_location(self.particles)
+            self.world.show_particles(self.particles)
+            self.world.show_robot(self.bob)
+            count += count
+            print("count", count)
+            # self.world.clear_objects()
+            
 
             ###############
