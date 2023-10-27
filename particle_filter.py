@@ -51,7 +51,7 @@ class particleFilter:
         self.modelStatePub = rospy.Publisher("/gazebo/set_model_state", ModelState, queue_size=1)
         self.controlSub = rospy.Subscriber("/gem/control", Float32MultiArray, self.__controlHandler, queue_size = 1)
         self.control = []                   # A list of control signal from the vehicle
-
+        self.counter = 1
 
         return
 
@@ -99,7 +99,7 @@ class particleFilter:
         ## TODO #####
         particle_weight_dict = {}
         for p in self.particles:
-            particle_weight_dict[p] = self.weight_gaussian_kernel(readings_robot, p.read_sensor())
+            particle_weight_dict[p] = self.weight_gaussian_kernel(readings_robot, p.read_sensor(), std = 1000)
         
         sum_weight  = sum(particle_weight_dict.values())
 
@@ -134,11 +134,11 @@ class particleFilter:
                     i = 0 
                 c += particle_array[i].weight
             p = particle_array[i]
-            particles_new.append(Particle(x = p.x, y = p.y, maze = self.world, sensor_limit = self.sensor_limit))
-
+            particles_new.append(Particle(x = p.x, y = p.y, heading=p.heading, maze = self.world, sensor_limit = self.sensor_limit, noisy=True))
+        
         ###############
 
-        # #multinomial resampling
+        #multinomial resampling
         # weight_array = []
         # particle_array = []
         # for p in self.particles:
@@ -149,12 +149,24 @@ class particleFilter:
         #     cumm_weights = cumm_weights/cumm_weights[-1]
 
         # for j in range(self.num_particles):
-        #     sample = np.random.random()
+        #     sample = np.random.uniform(0, cumm_weights[-1])
         #     idx = np.searchsorted(cumm_weights, sample)
         #     p = particle_array[idx]
-        #     particles_new.append(Particle(x = p.x, y = p.y, maze = self.world, sensor_limit = self.sensor_limit))
+        #     particles_new.append(Particle(x = p.x, y = p.y, heading=p.heading, maze = self.world, sensor_limit = self.sensor_limit, noisy=True))
 
+        #occasionaly scatter particles
+        # self.counter += 1
+        # if self.counter % 50 == 0:
+        #     for i in range(self.num_particles):
+        #         # (Default) The whole map
+        #         x = np.random.uniform(0, self.world.width)
+        #         y = np.random.uniform(0, self.world.height)
+        #         particles_new.append(Particle(x = x, y = y, maze = self.world, sensor_limit = self.sensor_limit))
+
+        ###############
         self.particles = particles_new
+
+
 
 
     def particleMotionModel(self):
@@ -165,7 +177,10 @@ class particleFilter:
         ## TODO #####
         t_step = 0.01
         t0 = 0.0
-
+        std = 0.05
+        # if len(self.control) > 20:
+        #     controllers = self.control[-20:]
+        # self.control = []
         for control in self.control:
             [vr, delta] = control
             for p in self.particles:
@@ -173,7 +188,12 @@ class particleFilter:
                 integrator = ode(vehicle_dynamics).set_integrator('dopri5')
                 integrator.set_initial_value(vars, t0).set_f_params(vr, delta)
                 [p.x, p.y, p.heading] = integrator.integrate(t_step)
-        
+                p.x += np.random.normal(0, std)
+                p.y += np.random.normal(0, std)
+                p.heading += np.random.normal(0, np.pi * 2 * 0.05)
+                p.heading = p.heading % (2*np.pi)
+        self.control = []
+    
         ###############
         # pass
 
@@ -190,10 +210,11 @@ class particleFilter:
             reading = self.bob.read_sensor()
             self.updateWeight(reading)
             self.resampleParticle()
+            count += 1
+            print("count", count)
 
             self.world.show_estimated_location(self.particles)
             self.world.show_particles(self.particles)
             self.world.show_robot(self.bob)
             self.world.clear_objects()
-
             ###############
