@@ -97,12 +97,14 @@ class particleFilter:
         """
 
         ## TODO #####
-        sum_weight = 0
+        particle_weight_dict = {}
         for p in self.particles:
-            p.weight = self.weight_gaussian_kernel(readings_robot, p.read_sensor())
-            sum_weight += p.weight
+            particle_weight_dict[p] = self.weight_gaussian_kernel(readings_robot, p.read_sensor())
+        
+        sum_weight  = sum(particle_weight_dict.values())
+
         for p in self.particles:
-            p.weight = p.weight/sum_weight
+            p.weight = (particle_weight_dict[p]/sum_weight)
 
         ###############
         # pass
@@ -115,6 +117,7 @@ class particleFilter:
         particles_new = list()
 
         ## TODO #####
+        #low-variance-sampling
         particle_array = []
         for p in self.particles:
             particle_array.append(p)
@@ -123,17 +126,36 @@ class particleFilter:
         c = particle_array[0].weight
         i = 0
         for j in range(self.num_particles):
-            U = r + j*(1/self.num_particles)
+            U = r + (j*(1/self.num_particles))
             while U > c:
-                i +=1 
-                if i < self.num_particles:
-                    c += particle_array[i].weight
-                
-            particles_new.append(particle_array[i])
+                # print("i am stuck")
+                i +=1
+                if i>=self.num_particles:
+                    i = 0 
+                c += particle_array[i].weight
+            p = particle_array[i]
+            particles_new.append(Particle(x = p.x, y = p.y, maze = self.world, sensor_limit = self.sensor_limit))
 
         ###############
 
+        # #multinomial resampling
+        # weight_array = []
+        # particle_array = []
+        # for p in self.particles:
+        #     weight_array.append(p.weight)
+        #     particle_array.append(p)
+        # cumm_weights = np.cumsum(weight_array)
+        # if cumm_weights[-1] > 0:
+        #     cumm_weights = cumm_weights/cumm_weights[-1]
+
+        # for j in range(self.num_particles):
+        #     sample = np.random.random()
+        #     idx = np.searchsorted(cumm_weights, sample)
+        #     p = particle_array[idx]
+        #     particles_new.append(Particle(x = p.x, y = p.y, maze = self.world, sensor_limit = self.sensor_limit))
+
         self.particles = particles_new
+
 
     def particleMotionModel(self):
         """
@@ -141,7 +163,6 @@ class particleFilter:
             Estimate the next state for each particle according to the control input from actual robot 
         """
         ## TODO #####
-
         t_step = 0.01
         t0 = 0.0
 
@@ -153,10 +174,6 @@ class particleFilter:
                 integrator.set_initial_value(vars, t0).set_f_params(vr, delta)
                 [p.x, p.y, p.heading] = integrator.integrate(t_step)
         
-        # for p in self.particles:
-        #     print([p.x, p.y, p.heading])
-        
-
         ###############
         # pass
 
@@ -177,9 +194,6 @@ class particleFilter:
             self.world.show_estimated_location(self.particles)
             self.world.show_particles(self.particles)
             self.world.show_robot(self.bob)
-            count += count
-            print("count", count)
-            # self.world.clear_objects()
-            
+            self.world.clear_objects()
 
             ###############
