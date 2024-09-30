@@ -1,3 +1,3 @@
-# Autonomous Lane Follower
+# Autonomous Car Lane Follower
 
-Project to develop autonoumous lane following capability on a Gem E2 vehicle using a camera sensor only
+In this project we developed algorithms to enable an electric Gem E2 vehicle follow a lane on an outdoor track using a camera sensor only
